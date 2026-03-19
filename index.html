@@ -286,7 +286,11 @@ document.getElementById("installBtn").onclick=async()=>{
     deferredPrompt=null;
   }
 };
-
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
 </script>
 
 </body>
