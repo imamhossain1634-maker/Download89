@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- 🔥 APP SUPPORT -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7b2ff7">
+
+<title>Video Downloader</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  padding:10px;
+  color:white;
+  background: linear-gradient(135deg,#7b2ff7,#f107a3);
+}
+
+.title{
+  text-align:center;
+  font-size:24px;
+  font-weight:600;
+}
+
+.container{
+  background: rgba(255,255,255,0.1);
+  padding:15px;
+  border-radius:15px;
+  text-align:center;
+  backdrop-filter: blur(10px);
+}
+
+input{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  margin-top:10px;
+  text-align:center;
+  background:rgba(255,255,255,0.2);
+  color:white;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:12px;
+  background: linear-gradient(90deg,#ff00c8,#7b2ff7);
+  color:white;
+  font-weight:600;
+}
+
+.preview{
+  margin-top:15px;
+  background: rgba(0,0,0,0.3);
+  padding:10px;
+  border-radius:12px;
+}
+
+video{
+  width:100%;
+  border-radius:10px;
+}
+
+.progress-bar{
+  width:0%;
+  height:10px;
+  border-radius:10px;
+  background: linear-gradient(90deg,#00ffd5,#00bfff);
+}
+
+.progress-text{
+  font-size:12px;
+}
+
+.card{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+  background: rgba(255,255,255,0.1);
+  padding:10px;
+  border-radius:12px;
+}
+
+.thumb{
+  width:80px;
+  height:120px;
+  object-fit:cover;
+  border-radius:8px;
+}
+
+.footer{
+  text-align:center;
+  margin-top:20px;
+  font-size:12px;
+  opacity:0.7;
+}
+
+/* install button */
+#installBtn{
+  display:none;
+  margin-top:15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="title">🎬 Video Downloader</div>
+
+<div class="container">
+<input id="url" placeholder="Paste TikTok link">
+<button onclick="getVideo()">Get Video</button>
+
+<div id="loading"></div>
+<div id="previewBox"></div>
+
+<button id="installBtn">📲 Install App</button>
+</div>
+
+<h3>📜 History</h3>
+<div id="history"></div>
+
+<div class="footer">
+  <a href="https://www.facebook.com/imam1634" target="_blank" style="color:white;text-decoration:none;">
+    MAKE BY IMAM
+  </a>
+</div>
+
+<script>
+
+let currentVideo="", currentAudio="", currentData={};
+
+function cleanName(name){
+  return name.replace(/[^a-z0-9]/gi,"_").toLowerCase().substring(0,50);
+}
+
+function startLoading(){
+  let box=document.getElementById("loading");
+
+  box.innerHTML=`
+    <div class="progress-bar" id="bar"></div>
+    <div class="progress-text" id="text">0%</div>
+  `;
+
+  let p=0;
+  let bar=document.getElementById("bar");
+  let text=document.getElementById("text");
+
+  let interval=setInterval(()=>{
+    p+=3;
+    bar.style.width=p+"%";
+    text.innerText=p+"%";
+    if(p>=95) clearInterval(interval);
+  },80);
+
+  return interval;
+}
+
+async function getVideo(){
+
+let url=document.getElementById("url").value;
+let box=document.getElementById("previewBox");
+
+if(!url.includes("tiktok")){
+  alert("Invalid link");
+  return;
+}
+
+let interval=startLoading();
+
+try{
+let api="https://tikwm.com/api/?url="+encodeURIComponent(url);
+let r=await fetch(api);
+let data=await r.json();
+
+clearInterval(interval);
+document.getElementById("bar").style.width="100%";
+document.getElementById("text").innerText="100%";
+
+currentVideo=data.data.play;
+currentAudio=data.data.music;
+
+currentData={
+  title:data.data.title||"video",
+  img:data.data.cover
+};
+
+box.innerHTML=`
+<div class="preview">
+  <video controls src="${currentVideo}"></video>
+  <p>${currentData.title}</p>
+
+  <button onclick="downloadVideo()">⬇ Video</button>
+  <button onclick="downloadMP3()">🎧 MP3</button>
+</div>
+`;
+
+}catch{
+  box.innerHTML="Error!";
+}
+
+}
+
+function saveHistory(){
+let h=JSON.parse(localStorage.getItem("tt"))||[];
+
+h.unshift({
+  title:currentData.title,
+  img:currentData.img,
+  video:currentVideo,
+  audio:currentAudio
+});
+
+h=h.slice(0,5);
+localStorage.setItem("tt",JSON.stringify(h));
+loadHistory();
+}
+
+async function downloadVideo(){
+  let res = await fetch(currentVideo);
+  let blob = await res.blob();
+  let url = URL.createObjectURL(blob);
+
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = cleanName(currentData.title)+".mp4";
+  a.click();
+
+  saveHistory();
+}
+
+async function downloadMP3(){
+  let res = await fetch(currentAudio);
+  let blob = await res.blob();
+  let url = URL.createObjectURL(blob);
+
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = cleanName(currentData.title)+".mp3";
+  a.click();
+
+  saveHistory();
+}
+
+function loadHistory(){
+let h=JSON.parse(localStorage.getItem("tt"))||[];
+let html="";
+
+h.forEach(v=>{
+html+=`
+<div class="card">
+<img class="thumb" src="${v.img}">
+<div>
+<div>${v.title}</div>
+<button onclick="window.open('${v.video}')">↻ Video</button>
+</div>
+</div>
+`;
+});
+
+document.getElementById("history").innerHTML=html;
+}
+
+loadHistory();
+
+/* 🔥 INSTALL SYSTEM */
+let deferredPrompt;
+
+window.addEventListener("beforeinstallprompt",(e)=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  document.getElementById("installBtn").style.display="block";
+});
+
+document.getElementById("installBtn").onclick=async()=>{
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt=null;
+  }
+};
+
+</script>
+
+</body>
+</html>
